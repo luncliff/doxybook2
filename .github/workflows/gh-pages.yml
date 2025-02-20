@@ -29,6 +29,28 @@ jobs:
     #   url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: "Run apt"
+        run: sudo apt install -y -q pkg-config ninja-build zip unzip doxygen
+
+      - uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgDirectory: "${{ runner.tool_cache }}/vcpkg"
+          vcpkgGitCommitId: "6f29f12e82a8293156836ad81cc9bf5af41fe836" # 2025.01.13
+          runVcpkgInstall: true
+          vcpkgJsonGlob: 'vcpkg.json'
+      - uses: lukka/run-cmake@v10
+        with:
+          workflowPreset: linux-amd64
+      - name: "Run cmake and install"
+        run: |
+          cmake --build --preset "x64-linux-debug" --target install
+          sudo cp install/bin/doxybook2 /usr/local/bin/doxybook2
+          sudo chmod +x /usr/local/bin/doxybook2
+          doxybook2 --version
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -42,93 +64,9 @@ jobs:
       - name: "Run pip"
         run: pip install -r requirements-sample.txt
 
-      - name: "Run apt-get"
-        run: |
-          sudo apt-get install zip unzip doxygen -y -q
-
       - name: "Run Doxygen(example)"
         run: doxygen
         working-directory: example
-
-    #   - uses: actions/configure-pages@v5
-    #   - uses: actions/upload-pages-artifact@v3
-    #     with:
-    #       path: '_site'
-    #   - uses: actions/deploy-pages@v4
-
-  pages:
-    if: ${{ false }}
-    name: Pages
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v1
-        with:
-          submodules: true
-
-      - name: Dependencies
-        shell: bash
-        run: |
-          sudo apt-get install zip unzip python3-setuptools -y
-          mkdir -p ${{ github.workspace }}/public
-
-      - name: Download Node
-        uses: actions/setup-node@v1
-        with:
-          node-version: 8.x
-
-      - name: Download Hugo
-        shell: bash
-        run: |
-          wget https://github.com/gohugoio/hugo/releases/download/v0.74.1/hugo_extended_0.74.1_Linux-64bit.tar.gz
-          tar xvf hugo_extended_0.74.1_Linux-64bit.tar.gz
-          sudo mv ./hugo /usr/local/bin/hugo
-          sudo chmod +x /usr/local/bin/hugo
-          hugo version
-
-      - name: Download MkDocs
-        shell: bash
-        run: |
-          sudo python3 -m pip install mkdocs mkdocs-material mkdocs-bootswatch
-
-# Disabled due to VuePress not supporting Vue 3.x
-#      - name: Download VuePress
-#        shell: bash
-#        run: |
-#          sudo npm install vuepress vue-template-compiler -g
-
-      - name: Download GitBook CLI
-        shell: bash
-        run: |
-          sudo npm install gitbook-cli -g
-
-      - name: Download Doxygen
-        shell: bash
-        run: |
-          wget https://netcologne.dl.sourceforge.net/project/doxygen/rel-1.8.17/doxygen-1.8.17.linux.bin.tar.gz
-          tar -xvzf doxygen-1.8.17.linux.bin.tar.gz
-          sudo cp ./doxygen-1.8.17/bin/doxygen /usr/local/bin/doxygen
-          sudo chmod +x /usr/local/bin/doxygen
-
-      - uses: actions/download-artifact@v2
-        with:
-          name: Release
-          path: /tmp/release
-
-      - name: Install Doxybook2
-        shell: bash
-        run: |
-          file=$(ls /tmp/release | grep linux)
-          unzip "/tmp/release/$file" -d /tmp/doxybook2
-          sudo cp /tmp/doxybook2/bin/doxybook2 /usr/local/bin/doxybook2
-          sudo chmod +x /usr/local/bin/doxybook2
-          doxybook2 --version
-
-      - name: Run Doxygen
-        shell: bash
-        run: |
-          cd example
-          doxygen
 
       - name: MkDocs - ReadTheDocs
         shell: bash
@@ -187,17 +125,21 @@ jobs:
           hugo
           cp -r ./public ${{ github.workspace }}/public/hugo-book
 
-# Disabled due to VuePress not supporting Vue 3.x
-#      - name: VuePress - Default
-#        shell: bash
-#        run: |
-#          doxybook2 \
-#            --input ./example/doxygen/xml \
-#            --output ./example/vuepress \
-#            --config ./example/vuepress/.doxybook/config.json
-#          cd ./example/vuepress
-#          sudo vuepress build
-#          cp -r ./.vuepress/dist ${{ github.workspace }}/public/vuepress
+      # - name: Download VuePress # Disabled due to VuePress not supporting Vue 3.x
+      #   shell: bash
+      #   run: |
+      #     sudo npm install vuepress vue-template-compiler -g
+
+      # - name: VuePress - Default # Disabled due to VuePress not supporting Vue 3.x
+      #   shell: bash
+      #   run: |
+      #     doxybook2 \
+      #       --input ./example/doxygen/xml \
+      #       --output ./example/vuepress \
+      #       --config ./example/vuepress/.doxybook/config.json
+      #     cd ./example/vuepress
+      #     sudo vuepress build
+      #     cp -r ./.vuepress/dist ${{ github.workspace }}/public/vuepress
 
       - name: GitBook - Default
         shell: bash
@@ -212,16 +154,8 @@ jobs:
           gitbook build
           cp -r ./_book ${{ github.workspace }}/public/gitbook
 
-      - name: Additional files
-        shell: bash
-        run: |
-          cp ./example/index.html ${{ github.workspace }}/public/index.html
-          cp -r ./example/doxygen/html ${{ github.workspace }}/public/original
-          stat ${{ github.workspace }}/public
-
-      - name: Deploy
-        if: startsWith(github.ref, 'refs/heads/master')
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ${{ github.workspace }}/public
+      # - uses: actions/configure-pages@v5
+      # - uses: actions/upload-pages-artifact@v3
+      #   with:
+      #     path: 'public'
+      # - uses: actions/deploy-pages@v4

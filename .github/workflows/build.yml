@@ -179,7 +179,7 @@ jobs:
           mkdir -p ${{ github.workspace }}/public
 
       - name: Download Node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v4
         with:
           node-version: 8.x
 

@@ -35,6 +35,11 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install ninja
 
+      - uses: microsoft/setup-msbuild@v2
+        if: runner.os == 'Windows'
+        with:
+          msbuild-architecture: ${{ runner.arch }}
+
       - uses: lukka/run-vcpkg@v11
         with:
           vcpkgDirectory: "${{ runner.tool_cache }}/vcpkg"

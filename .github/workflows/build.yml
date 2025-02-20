@@ -1,20 +1,11 @@
 name: build
-on:
-  push:
-    branches:
-      - '*'
-    tags:
-      - '*'
-  pull_request:
-    branches:
-      - 'master'
+on: [push, pull_request, workflow_dispatch]
 
 jobs:
   build:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         include:
           - name: 'Windows x64'
@@ -45,24 +36,19 @@ jobs:
             vcpkg_dir: '/usr/local/share/vcpkg'
             generator: 'Unix Makefiles'
             arch: ''
+      fail-fast: false
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v1
+      - uses: actions/checkout@v4
         with:
           submodules: true
 
-      - name: Configure Vcpkg
-        shell: bash
-        run: |
-          cd ${{ matrix.vcpkg_dir }}
-          git fetch origin
-          git reset --hard origin/master
-          if [ "${{ matrix.triplet }}" == "x64-windows" ] || [ "${{ matrix.triplet }}" == "x86-windows" ]; then
-            ./bootstrap-vcpkg.bat
-          else
-            ./bootstrap-vcpkg.sh
-          fi
+      - uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgDirectory: ${{ matrix.vcpkg_dir }}
+          vcpkgGitCommitId: "6f29f12e82a8293156836ad81cc9bf5af41fe836" # 2025.01.13
+          runVcpkgInstall: true
+          vcpkgJsonGlob: 'vcpkg.json'
 
       - name: Configure
         shell: bash
@@ -163,6 +149,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
   
   pages:
+    if: ${{ false }}
     name: Pages
     needs: [build]
     runs-on: ubuntu-latest

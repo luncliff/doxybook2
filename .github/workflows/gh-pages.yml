@@ -24,14 +24,21 @@ jobs:
     name: "Generate Pages"
     runs-on: ubuntu-latest
     # if: github.ref == 'refs/heads/main'
-    # environment:
-    #   name: github-pages
-    #   url: ${{ steps.deployment.outputs.page_url }}
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: true
 
+      - uses: actions/cache@v4
+        with:
+          path: |
+            /var/cache/apt/archives
+          key: apt-${{ runner.os }}-${{ hashFiles('.github/workflows/gh-pages.yml') }}
+          restore-keys: |
+            apt-${{ runner.os }}-
       - name: "Run apt"
         run: sudo apt install -y -q pkg-config ninja-build zip unzip doxygen
 
@@ -166,8 +173,8 @@ jobs:
           gitbook build
           cp -r ./_book ${{ github.workspace }}/public/gitbook
 
-      # - uses: actions/configure-pages@v5
-      # - uses: actions/upload-pages-artifact@v3
-      #   with:
-      #     path: 'public'
-      # - uses: actions/deploy-pages@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'public'
+      - uses: actions/deploy-pages@v4

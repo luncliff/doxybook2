@@ -27,6 +27,14 @@ jobs:
         with:
           submodules: true
 
+      - name: "Run apt"
+        if: runner.os == 'Linux'
+        run: sudo apt install -y pkg-config ninja-build
+
+      - name: "Run homebrew"
+        if: runner.os == 'macOS'
+        run: brew install ninja
+
       - uses: lukka/run-vcpkg@v11
         with:
           vcpkgDirectory: "${{ runner.tool_cache }}/vcpkg"
@@ -38,16 +46,21 @@ jobs:
         with:
           workflowPreset: ${{ matrix.suffix }}
 
-
-      - name: List runtime dependencies
-        if: ${{ false }}
-        shell: bash
+      - name: "Run cmake(install)"
         run: |
-          if [ "$RUNNER_OS" == "Linux" ]; then
-            ldd ./install/bin/doxybook2
-          elif [ "$RUNNER_OS" == "macOS" ]; then
-            otool -L ./install/bin/doxybook2
-          fi
+          cmake --build --preset "${{ matrix.triplet }}-debug" --target install
+
+      - name: "List runtime dependencies"
+        if: runner.os == 'Linux'
+        run: >
+          file install/bin/doxybook2
+          ldd install/bin/doxybook2
+
+      - name: "List runtime dependencies"
+        if: runner.os == 'macOS'
+        run: >
+          file install/bin/doxybook2
+          otool -L install/bin/doxybook2
 
       - name: Package
         if: ${{ false }}

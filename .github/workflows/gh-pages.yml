@@ -69,6 +69,8 @@ jobs:
         working-directory: example
 
       - name: MkDocs - ReadTheDocs
+        id: example-readthedocs
+        continue-on-error: true
         shell: bash
         run: |
           doxybook2 \
@@ -80,6 +82,8 @@ jobs:
           cp -r ./site ${{ github.workspace }}/public/mkdocs-readthedocs
 
       - name: MkDocs - Material
+        id: example-material
+        continue-on-error: true
         shell: bash
         run: |
           doxybook2 \
@@ -91,6 +95,8 @@ jobs:
           cp -r ./site ${{ github.workspace }}/public/mkdocs-material
 
       - name: MkDocs - Bootswatch
+        id: example-bootswatch
+        continue-on-error: true
         shell: bash
         run: |
           doxybook2 \
@@ -102,6 +108,8 @@ jobs:
           cp -r ./site ${{ github.workspace }}/public/mkdocs-bootswatch
 
       - name: Hugo - Learn
+        id: example-hugo-learn
+        continue-on-error: true
         shell: bash
         run: |
           doxybook2 \
@@ -114,6 +122,8 @@ jobs:
           cp -r ./public ${{ github.workspace }}/public/hugo-learn
 
       - name: Hugo - Book
+        id: example-hugo-book
+        continue-on-error: true
         shell: bash
         run: |
           doxybook2 \
@@ -142,6 +152,8 @@ jobs:
       #     cp -r ./.vuepress/dist ${{ github.workspace }}/public/vuepress
 
       - name: GitBook - Default
+        id: example-gitbook
+        continue-on-error: true
         shell: bash
         run: |
           doxybook2 \

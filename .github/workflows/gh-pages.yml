@@ -23,10 +23,6 @@ jobs:
   generate:
     name: "Generate Pages"
     runs-on: ubuntu-latest
-    # if: github.ref == 'refs/heads/main'
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -172,6 +168,73 @@ jobs:
           cd ./example/gitbook
           gitbook build
           cp -r ./_book ${{ github.workspace }}/public/gitbook
+
+  deploy:
+    name: "Deploy Pages"
+    needs: [generate]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/cache@v4
+        with:
+          path: |
+            /var/cache/apt/archives
+          key: apt-${{ runner.os }}-${{ hashFiles('.github/workflows/gh-pages.yml') }}
+          restore-keys: |
+            apt-${{ runner.os }}-
+      - name: "Run apt"
+        run: sudo apt install -y -q pkg-config ninja-build zip unzip doxygen
+
+      - uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgDirectory: "${{ runner.tool_cache }}/vcpkg"
+          vcpkgGitCommitId: "6f29f12e82a8293156836ad81cc9bf5af41fe836" # 2025.01.13
+          runVcpkgInstall: true
+          vcpkgJsonGlob: 'vcpkg.json'
+      - uses: lukka/run-cmake@v10
+        with:
+          workflowPreset: linux-amd64
+      - name: "Run cmake and install"
+        run: |
+          cmake --build --preset "x64-linux-debug" --target install
+          sudo cp install/bin/doxybook2 /usr/local/bin/doxybook2
+          sudo chmod +x /usr/local/bin/doxybook2
+          doxybook2 --version
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: "Run npm"
+        run: sudo npm install gitbook-cli -g
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.13
+          cache: 'pip'
+      - name: "Run pip"
+        run: pip install -r requirements-sample.txt
+
+      - name: "Run Doxygen(example)"
+        run: doxygen
+        working-directory: example
+
+      - name: MkDocs - ReadTheDocs
+        continue-on-error: true
+        shell: bash
+        run: |
+          doxybook2 \
+            --input ./example/doxygen/xml \
+            --output ./example/mkdocs-readthedocs/docs \
+            --config ./example/mkdocs-readthedocs/.doxybook/config.json
+          cd ./example/mkdocs-readthedocs
+          mkdocs build
+          cp -r ./site ${{ github.workspace }}/public/mkdocs-readthedocs
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

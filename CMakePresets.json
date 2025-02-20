@@ -1,0 +1,146 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 30,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "vcpkg-manifest",
+            "hidden": true,
+            "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+            "cacheVariables": {
+                "VCPKG_INSTALLED_DIR": "${sourceDir}/vcpkg_installed",
+                "VCPKG_INSTALL_OPTIONS": "--clean-packages-after-build",
+                "VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/cmake"
+            },
+            "environment": {
+                "VCPKG_FEATURE_FLAGS": "manifests,versions"
+            },
+            "debug": {
+                "find": false
+            }
+        },
+        {
+            "name": "common-configs",
+            "hidden": true,
+            "binaryDir": "${sourceDir}/build",
+            "installDir": "${sourceDir}/install",
+            "cacheVariables": {
+                "CMAKE_CONFIGURATION_TYPES": "Debug;Release",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+                "BUILD_TESTING": false
+            }
+        },
+        {
+            "name": "x64-windows",
+            "generator": "Visual Studio 17 2022",
+            "architecture": "x64",
+            "inherits": [
+                "vcpkg-manifest",
+                "common-configs"
+            ],
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-windows"
+            },
+            "vendor": {
+                "microsoft.com/VisualStudioSettings/CMake/1.0": {
+                    "intelliSenseMode": "windows-msvc-x64"
+                }
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        },
+        {
+            "name": "x64-linux",
+            "generator": "Ninja Multi-Config",
+            "inherits": [
+                "vcpkg-manifest",
+                "common-configs"
+            ],
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-linux"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
+        },
+        {
+            "name": "x64-osx",
+            "generator": "Ninja Multi-Config",
+            "inherits": [
+                "vcpkg-manifest",
+                "common-configs"
+            ],
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-osx"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "x64-windows-debug",
+            "configurePreset": "x64-windows"
+        },
+        {
+            "name": "x64-linux-debug",
+            "configurePreset": "x64-linux"
+        },
+        {
+            "name": "x64-osx-debug",
+            "configurePreset": "x64-osx"
+        }
+    ],
+    "workflowPresets": [
+        {
+            "name": "windows-win64",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "x64-windows"
+                },
+                {
+                    "type": "build",
+                    "name": "x64-windows-debug"
+                }
+            ]
+        },
+        {
+            "name": "linux-amd64",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "x64-linux"
+                },
+                {
+                    "type": "build",
+                    "name": "x64-linux-debug"
+                }
+            ]
+        },
+        {
+            "name": "osx-amd64",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "x64-osx"
+                },
+                {
+                    "type": "build",
+                    "name": "x64-osx-debug"
+                }
+            ]
+        }
+    ]
+}
